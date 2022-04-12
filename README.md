@@ -6,3 +6,6 @@ demonstrating the feasibility of exploring the ocean in this way. If this goal i
 expand the scope of our project to find the shortest trajectories that explore the most ocean area.
 Additionally, we want to demonstrate the possibility of traveling to a specified goal location or region,
 e.g. to send data, for recovery, or to investigate a site of interest.
+
+# Installation and Usage
+Make a new python 3.9 conda environment and install whatever packages are necessary (TBD)
