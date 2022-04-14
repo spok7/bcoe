@@ -7,10 +7,11 @@ expand the scope of our project to find the shortest trajectories that explore t
 Additionally, we want to demonstrate the possibility of traveling to a specified goal location or region,
 e.g. to send data, for recovery, or to investigate a site of interest.
 
-# Installation and Usage
+## Installation and Usage
+
 Make a new python 3.9 conda environment and install whatever packages are necessary (TBD)
 
-# Project Outline
+## Project Outline
 
 Traditional gliders utilize hydrodynamic forces to efficiently travel long distances via actively-
 controlled bouyancy. However, this requries wings and complicated control algorithms, and doesn't
@@ -21,14 +22,14 @@ travel up and down is much easier to construct than one which can travel in any 
 theless much more capable than a purely passive probe. This project aims to explore the abilities and
 limitations of specifically these types of limited-actuation probes.
 
-# Code Structure
+## Code Structure
 
 We will apply the RRT/RRT*/Whatever-else-we-get-around-to algorithm to explore the set of states reachable from a given start configuration and whether path planning to specific goals is possible, in both synthetic and real-world flow fields. The main project components will be as follows:
 
 1. Main: Loads dataset(s), sets up problem, runs planner, visualizes results
 2. Planner: RRT or similar. Runs RRT(*), and when adding a new node, it picks a random actuation (up or down) and runs it through the model.
-3. Model: Flow field and integrator. Input: an (array of) points and a delta t. Output: where those points ended up. Can be either synthetic or using a real dataset. 
+3. Model: Flow field and integrator. Input: an (array of) points and a delta t. Output: where those points ended up. Can be either synthetic or using a real dataset.
 
-## Class structure:
-This program will use classes. There should be a main class of which all the other things are methods, and maybe subclasses. The main class can include all sorts of random crap that needs to get passed down deeply, like the dataset etc. 
+## Class Structure
 
+This program will use classes. There should be a main class of which all the other things are methods, and maybe subclasses. The main class can include all sorts of random crap that needs to get passed down deeply, like the dataset etc.
