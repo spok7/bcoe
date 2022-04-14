@@ -14,12 +14,12 @@ Make a new python 3.9 conda environment and install whatever packages are necess
 ## Project Outline
 
 Traditional gliders utilize hydrodynamic forces to efficiently travel long distances via actively-
-controlled bouyancy. However, this requries wings and complicated control algorithms, and doesn't
+controlled buoyancy. However, this requires wings and complicated control algorithms, and doesn't
 scale down well to ultra-small, ultra-cheap probes \[CITATION NEEDED\]. Previous works have explored
 purely drifting navigation on the surface of water, as well as navigation with a maximum speed in any
-direction \[Citations from LIT REVIEW\]. However, a bouyancy-controlled drifting probe which can only
-travel up and down is much easier to construct than one which can travel in any direction, but never-
-theless much more capable than a purely passive probe. This project aims to explore the abilities and
+direction \[Citations from LIT REVIEW\]. However, a buoyancy-controlled drifting probe which can only
+travel up and down is much easier to construct than one which can travel in any direction, but
+nevertheless much more capable than a purely passive probe. This project aims to explore the abilities and
 limitations of specifically these types of limited-actuation probes.
 
 ## Code Structure
