@@ -11,8 +11,13 @@ from scipy.interpolate import interpn
 
 class SODA(Dataloader):
     
-    def __init__(self):
-        filename = os.path.join(os.path.dirname(__file__), '../../datasets\soda3.12.2\soda3.12.2_mn_ocean_reg_2017.nc')
+    def __init__(self, year="2017"):
+        """Initialize the SODA dataset with the given year.
+
+        Args:
+            year (str, optional): Selects the year of dataset to use. Defaults to "2017".
+        """
+        filename = os.path.join(os.path.dirname(__file__), f'../../datasets\soda3.12.2\soda3.12.2_mn_ocean_reg_{year}.nc')
         self.ds = Dataset(filename)
         
         self.start = (0.25, -74.75) # 74.75S, 0.25E
@@ -29,6 +34,16 @@ class SODA(Dataloader):
         # print(self.ds["u"])
 
     def query(self, point, month=0):
+        """Returns a (dx, dy, dz) velocity vector for a given point (x, y, z).
+
+        Args:
+            point (tuple): A (x, y, z) point that corresponds to longitude, latitude, and depth respectively.
+            month (int, optional): The given month (0-11) to query the dataset. Defaults to 0 (January).
+
+        Returns:
+            (dx, dy, dz): A velocity vector describing the current at the given point. Found through interpolation.
+        """
+        point = list(point)
         
         u = self.ds['u'][month]
         v = self.ds['v'][month]
@@ -49,7 +64,14 @@ class SODA(Dataloader):
         dz = 0
         return dx, dy, dz
 
-    def draw_map(self, lats=None, lons=None):
+    def draw_map(self, lons=None, lats=None, size=1):
+        """Plots currents on a world map and can add waypoints. Saves the result.
+
+        Args:
+            lons (list, optional): A list of longitudes. Defaults to None.
+            lats (list, optional): A list of latitudes. Defaults to None.
+            size (int, optional): The waypoint indicator size. Defaults to 1.
+        """
 
         plt.figure(figsize=(10,10))
         m = Basemap(lat_ts=10,resolution='c') # change to i
@@ -67,19 +89,25 @@ class SODA(Dataloader):
         m.drawmapboundary(fill_color='aqua')
         
 
-        if lats and lons:
-            m.scatter(lons, lats, marker='D', color='r', latlon=True, zorder=10)
-        else:
-            x, y = np.meshgrid(self.x_range, self.y_range)
-            # print(x.shape, y.shape, self.ds["u"][0, 0].shape, self.ds["v"][0, 0].shape)
-            m.quiver(x, y, self.ds["u"][0, 0], self.ds["v"][0, 0], latlon=True, zorder=10)
+        x, y = np.meshgrid(self.x_range, self.y_range)
+        m.quiver(x, y, self.ds["u"][0, 0], self.ds["v"][0, 0], latlon=True, zorder=10)
+        
+        if lons is not None and lats is not None:
+            m.scatter(lons, lats, marker='D', color='r', latlon=True, zorder=10, s=size)
         
         plt.title("Current Map")
         plt.savefig('current_map.png', format='png', dpi=500)
-        plt.show()
         
     
     def return_bounded_area(self, bounds):
+        """Returns indices that conain the ranges of longitudes and latitudes.
+
+        Args:
+            bounds (tuple): Min and max longitude and latitude values of the form (x1, x2, y1, y2).
+
+        Returns:
+            tuple: Min and max dataset inded vales of the form (lx, hx, ly, hy). 
+        """
         x1, x2, y1, y2 = bounds
         lx = np.argmax((self.x_range >= x1) & (self.x_range < x1 + self.inc)) if x1 <= 179.75 else 360
         hx = np.argmax((self.x_range <= x2) & (self.x_range > x2 - self.inc)) + 1 if x2 >= -179.75 else 360
@@ -88,10 +116,16 @@ class SODA(Dataloader):
         return lx, hx, ly, hy
         
     def draw_3D_map(self, bbox=[-88, -7, 23, 64]):
+        """Plots currents of a world map in 3D bounded to the given area. Saves the result.
+
+        Args:
+            bbox (list, optional): A bounding box to which the plot is constrained. Defaults to [-88, -7, 23, 64] (gulf stream).
+        """
         
         # extent = [75, 100, 5, 25]
         x1, x2, y1, y2 = self.return_bounded_area(bbox)
 
+        # TODO: fix bug when x values range from negative to positive
         u = self.ds['u'][0, :, y1:y2, x1:x2]
         v = self.ds['v'][0, :, y1:y2, x1:x2]
         w = np.zeros(u.shape)
@@ -128,25 +162,27 @@ class SODA(Dataloader):
         #ax.set_zticks(d)
         #ax.set_zticklabels(d)
 
-        skip=(slice(None,None,1),slice(None,None,1))
-        ax.quiver(z[skip],x[skip],y[skip],u[skip],v[skip],w[skip], length=0.1, normalize=False)
+        # uncomment these two lines if things get too laggy and comment the third line below
+        # skip=(slice(None,None,1),slice(None,None,1))
+        # ax.quiver(z[skip],x[skip],y[skip],u[skip],v[skip],w[skip], length=0.1, normalize=False)
+        ax.quiver(z,x,y,u,v,w, length=0.1, normalize=False)
         ax.set_zlim(0., 150)
-        plt.savefig('3dplot.png')
+        plt.savefig('3d_current_map.png')
 
 
 if __name__ == "__main__":
     soda = SODA()
     # soda.draw_mercator(lons=[-76.9219820, 0, 128, -128],lats=[38.9719980, 0, -30, -60])
-    # soda.draw_map()
-    # soda.draw_3D_map()
-    print(soda.ds['u'][0,0,10,10], soda.ds['v'][0,0,10,10], 0)
-    print(soda.query([5.25, -69.75, 5.03355]))
+    soda.draw_map(list(np.arange(90)), list(np.arange(90)))
+    # soda.draw_3D_map(bbox=[75, 100, 5, 25])
+    # print(soda.ds['u'][0,0,10,10], soda.ds['v'][0,0,10,10], 0)
+    # print(soda.query([5.25, -69.75, 5.03355]))
     
-    print(soda.ds['u'][0,0,10,0], soda.ds['v'][0,0,10,0], 0)
-    print(soda.query([0.25, -69.75, 5.03355]))
-    print(soda.ds['u'][0,0,10,719], soda.ds['v'][0,0,10,719], 0)
-    print(soda.query([-0.25, -69.75, 5.03355]))
-    print(soda.query([0, -69.75, 5.03355]))
+    # print(soda.ds['u'][0,0,10,0], soda.ds['v'][0,0,10,0], 0)
+    # print(soda.query([0.25, -69.75, 5.03355]))
+    # print(soda.ds['u'][0,0,10,719], soda.ds['v'][0,0,10,719], 0)
+    # print(soda.query([-0.25, -69.75, 5.03355]))
+    # print(soda.query([0, -69.75, 5.03355]))
     
     
     soda.ds.close()
