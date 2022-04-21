@@ -1,13 +1,17 @@
+from mpl_toolkits.basemap import Basemap
+import matplotlib.pyplot as plt
+import numpy as np
+
 class Dataloader:
 
     def __init__(self):
         raise NotImplementedError
 
-    # def query(self, start_point, robot_velocity, time_interval, time_resolution, current_time=0):
-    #     """
-    #     Given a robot start point (x, y, z), relative velocity (dx, dy, dz), and a time interval,
-    #     return a list of points that the robot travels through during the time interval,
-    #     giving one point for every time_resolution seconds of travel.
-    #     Ex: query((0, 0, 0), (0, 0, -1), 1, 0.1) = [(1, 0, 0), (2, 0, 0), (3, 0, 0)]
-    #     """
-    #     raise NotImplementedError
+    def query(self, point):
+        raise NotImplementedError
+    
+    def generate_coast_segments(self):
+        plt.ioff()
+        m = Basemap(projection='robin',lon_0=0,resolution='c')
+        coordinates = np.vstack(m.drawcoastlines().get_segments())
+        return m(coordinates[:,0],coordinates[:,1],inverse=True)

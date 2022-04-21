@@ -1,7 +1,12 @@
-from posixpath import lexists
+
+from multiprocessing.sharedctypes import Value
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'dataset_processing'))
+
+# from dataloader import Dataloader
 from dataloader import Dataloader
 from netCDF4 import Dataset
-import os
+
 
 from mpl_toolkits.basemap import Basemap
 import numpy as np
@@ -32,12 +37,34 @@ class SODA(Dataloader):
                         3508.633, 3717.567, 3926.813, 4136.251, 4345.864, 4555.566, 4765.369, 4975.209, 5185.111, 5395.023]
         
         # print(self.ds["u"])
+        
+        self.coastal_lons, self.coastal_lats = self.generate_coast_segments()
+        self.coastal_lons, self.coastal_lats = np.array([[x, y] for x, y in zip(self.coastal_lons, self.coastal_lats) if self.point_within_bounds([x, y])]).T
+        
+    def point_within_bounds(self, point=[0,0]):
+        """Returns True if the given 2D or 3D point is within the dataset bounds.
 
+        Args:
+            point (list, optional): The 2D or 3D point list. Defaults to [0,0].
+
+        Returns:
+            bool: Whether the point lies within the bounds of the dataset
+        """
+        if point[0] < -180 or point[0] > 180 or point[1] < -74.75 or point[1] > 89.75:
+            return False
+        if len(point) > 2 and (point[2] < 5.03355 or point[2] > 5395.023):
+            return False
+        return True
+            
     def query(self, point, month=0):
         """Returns a (dx, dy, dz) velocity vector for a given point (x, y, z).
 
         Args:
             point (tuple): A (x, y, z) point that corresponds to longitude, latitude, and depth respectively.
+                The point must be constrained to the following ranges:
+                    x: [-180, 180]
+                    y: [-74.75, 89.75]
+                    z: [5.03355, 5395.023]
             month (int, optional): The given month (0-11) to query the dataset. Defaults to 0 (January).
 
         Returns:
@@ -97,6 +124,7 @@ class SODA(Dataloader):
         
         plt.title("Current Map")
         plt.savefig('current_map.png', format='png', dpi=500)
+        plt.show()
         
     
     def return_bounded_area(self, bounds):
@@ -119,7 +147,7 @@ class SODA(Dataloader):
         """Plots currents of a world map in 3D bounded to the given area. Saves the result.
 
         Args:
-            bbox (list, optional): A bounding box to which the plot is constrained. Defaults to [-88, -7, 23, 64] (gulf stream).
+            bbox (list, optional): A bounding box [x1,x2,y1,y2] to which the plot is constrained. Defaults to [-88, -7, 23, 64] (gulf stream).
         """
         
         # extent = [75, 100, 5, 25]
@@ -173,7 +201,8 @@ class SODA(Dataloader):
 if __name__ == "__main__":
     soda = SODA()
     # soda.draw_mercator(lons=[-76.9219820, 0, 128, -128],lats=[38.9719980, 0, -30, -60])
-    soda.draw_map(list(np.arange(90)), list(np.arange(90)))
+    # soda.draw_map(list(np.arange(90)), list(np.arange(90)))
+    # soda.draw_map()
     # soda.draw_3D_map(bbox=[75, 100, 5, 25])
     # print(soda.ds['u'][0,0,10,10], soda.ds['v'][0,0,10,10], 0)
     # print(soda.query([5.25, -69.75, 5.03355]))
@@ -183,6 +212,5 @@ if __name__ == "__main__":
     # print(soda.ds['u'][0,0,10,719], soda.ds['v'][0,0,10,719], 0)
     # print(soda.query([-0.25, -69.75, 5.03355]))
     # print(soda.query([0, -69.75, 5.03355]))
-    
-    
+    # print(soda.query([0, 0, 0.8726646259971648]))
     soda.ds.close()

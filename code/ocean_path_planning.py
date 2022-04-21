@@ -16,7 +16,8 @@ def get_flow_vel(x, y, z):
     vx = z
     vy = 0
     vz = 0
-    return soda.query([x, y, z])
+    print(x, y, -z)
+    return soda.query([x, y, -z])
 
 
 def ocean_path_planning(sx, sy, sz, rvx, rvy, rvz, delta_t, step_size=0.1):
