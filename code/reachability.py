@@ -19,5 +19,5 @@ from dataset_processing.soda_dataloader import SODA
 soda = SODA()
 x = soda.coastal_lats
 y = soda.coastal_lons
-plt.scatter(x,y)
-
+plt.scatter(soda.coastal_lons, soda.coastal_lats)
+plt.show()

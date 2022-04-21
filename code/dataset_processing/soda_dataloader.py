@@ -134,7 +134,7 @@ class SODA(Dataloader):
             bounds (tuple): Min and max longitude and latitude values of the form (x1, x2, y1, y2).
 
         Returns:
-            tuple: Min and max dataset inded vales of the form (lx, hx, ly, hy). 
+            tuple: Min and max dataset indexed vales of the form (lx, hx, ly, hy). 
         """
         x1, x2, y1, y2 = bounds
         lx = np.argmax((self.x_range >= x1) & (self.x_range < x1 + self.inc)) if x1 <= 179.75 else 360

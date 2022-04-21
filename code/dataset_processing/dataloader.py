@@ -14,4 +14,6 @@ class Dataloader:
         plt.ioff()
         m = Basemap(projection='robin',lon_0=0,resolution='c')
         coordinates = np.vstack(m.drawcoastlines().get_segments())
-        return m(coordinates[:,0],coordinates[:,1],inverse=True)
+        x, y = m(coordinates[:,0],coordinates[:,1],inverse=True)
+        plt.close()
+        return x, y
