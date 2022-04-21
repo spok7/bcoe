@@ -23,9 +23,8 @@ class SODA(Dataloader):
                         330.0078, 382.3651, 446.7263, 524.9824, 618.7031, 728.6921, 854.9935, 996.7153, 1152.376, 1319.997,
                         1497.562, 1683.057, 1874.788, 2071.252, 2271.323, 2474.043, 2678.757, 2884.898, 3092.117, 3300.086,
                         3508.633, 3717.567, 3926.813, 4136.251, 4345.864, 4555.566, 4765.369, 4975.209, 5185.111, 5395.023]
-
-
-        print(self.ds["u"])
+        
+        # print(self.ds["u"])
 
     def query(self, start_point, robot_velocity, time_interval, time_resolution, current_time=0):
         pass
@@ -48,8 +47,8 @@ class SODA(Dataloader):
         m.drawmapboundary(fill_color='aqua')
         
 
-        if lons and lats:
-            m.scatter(lats, lons, marker='D', color='r', latlon=True, zorder=10)
+        if lats and lons:
+            m.scatter(lons, lats, marker='D', color='r', latlon=True, zorder=10)
         else:
             x, y = np.meshgrid(self.x_range, self.y_range)
             # print(x.shape, y.shape, self.ds["u"][0, 0].shape, self.ds["v"][0, 0].shape)
@@ -110,7 +109,6 @@ class SODA(Dataloader):
         #ax.set_zticklabels(d)
 
         skip=(slice(None,None,1),slice(None,None,1))
-        print(z.shape,x.shape,y.shape,u.shape,v.shape,w.shape, print(z[skip].shape))
         ax.quiver(z[skip],x[skip],y[skip],u[skip],v[skip],w[skip], length=0.1, normalize=False)
         ax.set_zlim(0., 150)
         plt.savefig('3dplot.png')
@@ -118,7 +116,7 @@ class SODA(Dataloader):
 
 if __name__ == "__main__":
     soda = SODA()
-    # soda.draw_mercator(lats=[-76.9219820, 0, 128, -128],lons=[38.9719980, 0, -30, -60])
+    # soda.draw_mercator(lons=[-76.9219820, 0, 128, -128],lats=[38.9719980, 0, -30, -60])
     # soda.draw_map()
     soda.draw_3D_map()
     soda.ds.close()
