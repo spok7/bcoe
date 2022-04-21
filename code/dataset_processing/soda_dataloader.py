@@ -7,6 +7,8 @@ from mpl_toolkits.basemap import Basemap
 import numpy as np
 import matplotlib.pyplot as plt
 
+from scipy.interpolate import interpn
+
 class SODA(Dataloader):
     
     def __init__(self):
@@ -26,8 +28,26 @@ class SODA(Dataloader):
         
         # print(self.ds["u"])
 
-    def query(self, start_point, robot_velocity, time_interval, time_resolution, current_time=0):
-        pass
+    def query(self, point, month=0):
+        
+        u = self.ds['u'][month]
+        v = self.ds['v'][month]
+        
+        # change the range to increasing values so interpolation works smoothly
+        if point[0] < 0.25:
+            point[0] += 360
+            
+        x_range = np.concatenate((self.x_range, [0.25]))
+        x_range[360:] += 360
+        
+        # add edge case
+        u = np.concatenate((u, u[:,:,0:1]), axis=2)
+        v = np.concatenate((v, v[:,:,0:1]), axis=2)
+        
+        dx = interpn((self.z_range, self.y_range, x_range), u, point[::-1])[0]
+        dy = interpn((self.z_range, self.y_range, x_range), v, point[::-1])[0]
+        dz = 0
+        return dx, dy, dz
 
     def draw_map(self, lats=None, lons=None):
 
@@ -118,5 +138,15 @@ if __name__ == "__main__":
     soda = SODA()
     # soda.draw_mercator(lons=[-76.9219820, 0, 128, -128],lats=[38.9719980, 0, -30, -60])
     # soda.draw_map()
-    soda.draw_3D_map()
+    # soda.draw_3D_map()
+    print(soda.ds['u'][0,0,10,10], soda.ds['v'][0,0,10,10], 0)
+    print(soda.query([5.25, -69.75, 5.03355]))
+    
+    print(soda.ds['u'][0,0,10,0], soda.ds['v'][0,0,10,0], 0)
+    print(soda.query([0.25, -69.75, 5.03355]))
+    print(soda.ds['u'][0,0,10,719], soda.ds['v'][0,0,10,719], 0)
+    print(soda.query([-0.25, -69.75, 5.03355]))
+    print(soda.query([0, -69.75, 5.03355]))
+    
+    
     soda.ds.close()
