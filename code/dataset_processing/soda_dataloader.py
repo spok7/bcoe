@@ -1,5 +1,3 @@
-
-from multiprocessing.sharedctypes import Value
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'dataset_processing'))
 
@@ -93,13 +91,13 @@ class SODA(Dataloader):
         dz = 0
         return dx, dy, dz
 
-    def draw_map(self, lons=None, lats=None, size=1):
+    def draw_map(self, data=None, currents=True):
         """Plots currents on a world map and can add waypoints. Saves the result.
 
         Args:
-            lons (list, optional): A list of longitudes. Defaults to None.
-            lats (list, optional): A list of latitudes. Defaults to None.
+            data (list, optional): A list of tuples of longitudes, latitudes, colours, and sizes. Defaults to None.
             size (int, optional): The waypoint indicator size. Defaults to 1.
+            currents (bool, optional): Flag enabling current plotting.
         """
 
         plt.figure(figsize=(10,10))
@@ -117,12 +115,13 @@ class SODA(Dataloader):
         m.drawmeridians(np.arange(-180.,181.,60.),labels=[0,0,0,1],rotation=45)
         m.drawmapboundary(fill_color='aqua')
         
-
-        x, y = np.meshgrid(self.x_range, self.y_range)
-        m.quiver(x, y, self.ds["u"][0, 0], self.ds["v"][0, 0], latlon=True, zorder=10)
+        if currents:
+            x, y = np.meshgrid(self.x_range, self.y_range)
+            m.quiver(x, y, self.ds["u"][0, 0], self.ds["v"][0, 0], latlon=True, zorder=9)
         
-        if lons is not None and lats is not None:
-            m.scatter(lons, lats, marker='D', color='r', latlon=True, zorder=10, s=size)
+        for lons, lats, col, size in data:
+            # print(len(lons), len(lats), col, size)
+            m.scatter(lons, lats, marker='D', c=col, latlon=True, zorder=10, s=size)
         
         plt.title("Current Map")
         plt.savefig('current_map.png', format='png', dpi=500)
@@ -199,6 +198,9 @@ class SODA(Dataloader):
         ax.set_zlim(0., 150)
         plt.savefig('3d_current_map.png')
         
+    def convert_to_lon_lat(self, x, y):
+        return [self.x_range[i] for i in x], [self.y_range[j] for j in y]
+        
     def make_graph(self, month=0):
         start_time = perf_counter() # time in ms 1000/s
         graph = np.ones((330,720,8)) * np.inf
@@ -262,6 +264,5 @@ if __name__ == "__main__":
     np.save("graph", graph)
     print(graph)
     print(graph.shape)
-    
 
     soda.ds.close()

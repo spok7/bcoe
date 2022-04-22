@@ -1,114 +1,172 @@
-import sys
+import numpy as np
+import random
+import matplotlib.pyplot as plt
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'dataset_processing'))
+from soda_dataloader import SODA
 
-class Graph(object):
-    def __init__(self, nodes, init_graph):
-        self.nodes = nodes
-        self.graph = self.construct_graph(nodes, init_graph)
+class Node:
+    def __init__(self, parent=None, cost=0):
+        self.parent = parent
+        self.cost = cost
         
-    def construct_graph(self, nodes, init_graph):
-        '''
-        This method makes sure that the graph is symmetrical. In other words, if there's a path from node A to B with a value V, there needs to be a path from node B to node A with a value V.
-        '''
-        graph = {}
-        for node in nodes:
-            graph[node] = {}
+    def __str__(self):
+        return str(self.cost)
+    
+    def __eq__(self, other):
+        return self.cost == other.cost
+
+class Dijkstra:
+    def __init__(self, graph, start, goal):
+        self.graph = graph
+        self.start = start
+        self.goal = goal
         
-        graph.update(init_graph)
+    def find_leaves(self, idx, cost=0):
+        """A very complicated function to retrieve possible leaf nodes.
+
+        Args:
+            idx (tuple(x,y)): The tuple index of the current node.
+
+        Returns:
+            list: A list of key,value pairs corresponding to the leaf nodes.
+        """
         
-        for node, edges in graph.items():
-            for adjacent_node, value in edges.items():
-                if graph[adjacent_node].get(node, False) == False:
-                    graph[adjacent_node][node] = value
+        # retrieve possible leaves with their related costs
+        leaves = np.array([[-1,1], [0,1], [1,1], [1,0], [1,-1], [0,-1], [-1,-1], [-1,0]]) + np.array(idx)
+        costs = self.graph[idx[1], idx[0]] + cost
+        
+        # wrap around on the x
+        leaves[leaves[:,0]==-1] += [self.graph.shape[1], 0]
+        leaves[leaves[:,0]==self.graph.shape[1]] *= [0, 1]
+        
+        # keep all y values within boundaries and costs less than infinity
+        mask = (leaves[:,1] >= 0) & (leaves[:,1] < self.graph.shape[0]) & (costs != np.inf)
+        leaves = leaves[mask]
+        costs = costs[mask]
+        
+        return [(tuple(l), Node(idx, c)) for l, c in zip(leaves, costs)]
+        
+    def run(self):
+        visited = {self.start:Node()}
+        leaves = {}
+        leaves.update(self.find_leaves(self.start))
+        
+        while leaves:
+            # iterate through all of the leaf nodes (nodes with unvisited members)
+            best_idx, best_node = None, None
+            for idx, n in leaves.items():
+                if not best_idx or n.cost < best_node.cost:
+                    best_idx, best_node = idx, n
+            
+            del leaves[best_idx]
+            
+            # skip over visited values, since they already have the lowest cost
+            if best_idx in visited:
+                continue
+            
+            # add node to visited values, and return them if the node was the goal node
+            visited[best_idx] = best_node
+            if best_idx == self.goal:
+                return visited
+            
+            
+            new_leaves = self.find_leaves(best_idx, best_node.cost)
+            for idx, n in new_leaves:
+                if idx not in visited and (idx not in leaves or n.cost < leaves[idx].cost):
+                    leaves[idx] = n
                     
-        return graph
+        return visited
     
-    def get_nodes(self):
-        "Returns the nodes of the graph."
-        return self.nodes
-    
-    def get_outgoing_edges(self, node):
-        "Returns the neighbors of a node."
-        connections = []
-        for out_node in self.nodes:
-            if self.graph[node].get(out_node, False) != False:
-                connections.append(out_node)
-        return connections
-    
-    def value(self, node1, node2):
-        "Returns the value of an edge between two nodes."
-        return self.graph[node1][node2]
-    
-def dijkstra_algorithm(graph, start_node):
-    unvisited_nodes = list(graph.get_nodes())
- 
-    # We'll use this dict to save the cost of visiting each node and update it as we move along the graph   
-    shortest_path = {}
- 
-    # We'll use this dict to save the shortest known path to a node found so far
-    previous_nodes = {}
- 
-    # We'll use max_value to initialize the "infinity" value of the unvisited nodes   
-    max_value = sys.maxsize
-    for node in unvisited_nodes:
-        shortest_path[node] = max_value
-    # However, we initialize the starting node's value with 0   
-    shortest_path[start_node] = 0
-    
-    # The algorithm executes until we visit all nodes
-    while unvisited_nodes:
-        # The code block below finds the node with the lowest score
-        current_min_node = None
-        for node in unvisited_nodes: # Iterate over the nodes
-            if current_min_node == None:
-                current_min_node = node
-            elif shortest_path[node] < shortest_path[current_min_node]:
-                current_min_node = node
-                
-        # The code block below retrieves the current node's neighbors and updates their distances
-        neighbors = graph.get_outgoing_edges(current_min_node)
-        for neighbor in neighbors:
-            tentative_value = shortest_path[current_min_node] + graph.value(current_min_node, neighbor)
-            if tentative_value < shortest_path[neighbor]:
-                shortest_path[neighbor] = tentative_value
-                # We also update the best path to the current node
-                previous_nodes[neighbor] = current_min_node
- 
-        # After visiting its neighbors, we mark the node as "visited"
-        unvisited_nodes.remove(current_min_node)
-    
-    return previous_nodes, shortest_path
+    def get_paths(self, nodes):
+        path_x, path_y = [], []
+        ci = self.goal
+        cn = nodes[ci]
+        while cn.parent:
+            path_x.append(ci[0])
+            path_y.append(ci[1])
+            ci = cn.parent
+            cn = nodes[ci]
+        path_x.append(ci[0])
+        path_y.append(ci[1])
+        return path_x[::-1], path_y[::-1]
 
-def print_result(previous_nodes, shortest_path, start_node, target_node):
-    path = []
-    node = target_node
+def fake_data(x, y):
+    graph = np.ones((y, x, 8)) * np.inf
     
-    while node != start_node:
-        path.append(node)
-        node = previous_nodes[node]
- 
-    # Add the start node manually
-    path.append(start_node)
+    for i in range(x):
+        for j in range(y):
+            indices = []
+            directions = random.randint(1, 8)
+            while len(indices) < directions:
+                index = random.randint(0, 7)
+                if index in indices:
+                    continue
+                indices.append(indices)
+                graph[j, i, index] = random.randint(1, 9)
     
-    print("We found the following best path with a value of {}.".format(shortest_path[target_node]))
-    print(" -> ".join(reversed(path)))
-    
-if __name__ == "__main__":
-    nodes = ["Reykjavik", "Oslo", "Moscow", "London", "Rome", "Berlin", "Belgrade", "Athens"]
- 
-    init_graph = {}
-    for node in nodes:
-        init_graph[node] = {}
+    return graph
         
-    init_graph["Reykjavik"]["Oslo"] = 5
-    init_graph["Reykjavik"]["London"] = 4
-    init_graph["Oslo"]["Berlin"] = 1
-    init_graph["Oslo"]["Moscow"] = 3
-    init_graph["Moscow"]["Belgrade"] = 5
-    init_graph["Moscow"]["Athens"] = 4
-    init_graph["Athens"]["Belgrade"] = 1
-    init_graph["Rome"]["Berlin"] = 2
-    init_graph["Rome"]["Athens"] = 2
+if __name__ == "__main__":
+    random.seed(42)
+    # graph = fake_data(5, 4)
+    # print(graph)
+    # print(graph.shape, graph[1,0])
+    # D = Dijkstra(graph, (0, 1), (2, 3))
+    # # print(D.find_leaves((4, 3)))
+    # # print(D.find_leaves((0, 0)))
+    # # print(D.find_leaves((0, 1)))
+    # nodes = D.run()
+    # print("Success:", D.goal in nodes)
     
-    graph = Graph(nodes, init_graph)
-    previous_nodes, shortest_path = dijkstra_algorithm(graph=graph, start_node="Reykjavik")
-    print_result(previous_nodes, shortest_path, start_node="Reykjavik", target_node="Belgrade")
+    # path_x, path_y = D.get_paths(nodes)
+    
+    # plt.plot(path_x, path_y)
+    # plt.show()
+    
+    soda = SODA()
+    graph = np.load("D:\\sync\\documents\\academics\\c. grad school\\s2-AER1516-planning-for-robotics\\project\\graph.npy", allow_pickle=True)
+    
+    st_johns = [-48, -48, 44, 44]
+    miami = [-80, -80, 25, 25]
+    st_johns_idx = soda.return_bounded_area(st_johns)[::2]
+    miami_idx = soda.return_bounded_area(miami)[::2]
+    # soda.draw_map(data=[([miami[0], st_johns[0]], [miami[2], st_johns[2]], 'r', 10)])
+    print(miami_idx, st_johns_idx)
+    # D = Dijkstra(graph, miami_idx, st_johns_idx)
+    # nodes = D.run()
+    # if D.goal in nodes:
+    #     print("Success!")
+    #     path_x, path_y = D.get_paths(nodes)
+    #     reached_x, reached_y, reached_cost = [], [], []
+    #     for (x, y), n in nodes.items():
+    #         reached_x.append(x)
+    #         reached_y.append(y)
+    #         reached_cost.append(n.cost)
+    #     sgx, sgy = soda.convert_to_lon_lat([D.start[0], D.goal[0]], [D.start[1], D.goal[1]])
+    #     px, py = soda.convert_to_lon_lat(path_x, path_y)
+    #     rx, ry = soda.convert_to_lon_lat(reached_x, reached_y)
+        
+    #     soda.draw_map(data=[(rx, ry, reached_cost, 20),
+    #                         (px, py, 'purple', 30),
+    #                         (sgx, sgy, 'red', 50)], currents=True)
+    # else:
+    #     print("Failure")
+    #     print(nodes.keys())
+    
+        
+    D = Dijkstra(graph, miami_idx, None)
+    nodes = D.run()
+    reached_x, reached_y, reached_cost = [], [], []
+    for (x, y), n in nodes.items():
+        reached_x.append(x)
+        reached_y.append(y)
+        reached_cost.append(n.cost)
+    rx, ry = soda.convert_to_lon_lat(reached_x, reached_y)
+    sx, sy = soda.convert_to_lon_lat([D.start[0]], [D.start[1]])
+    soda.draw_map(data=[(sx, sy, "red", 50),(rx, ry, "purple", 30)], currents=True)
+        
+        
+    
+        
+        
