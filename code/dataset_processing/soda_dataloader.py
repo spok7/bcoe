@@ -14,6 +14,8 @@ import matplotlib.pyplot as plt
 
 from scipy.interpolate import interpn
 
+from time import perf_counter
+
 class SODA(Dataloader):
     
     def __init__(self, year="2017"):
@@ -196,6 +198,46 @@ class SODA(Dataloader):
         ax.quiver(z,x,y,u,v,w, length=0.1, normalize=False)
         ax.set_zlim(0., 150)
         plt.savefig('3d_current_map.png')
+        
+    def make_graph(self, month=0):
+        start_time = perf_counter() # time in ms 1000/s
+        graph = np.ones((330,720,8)) * np.inf
+        for y in range(330):
+            for x in range(720):
+                for z in range(50):
+                    u, v = self.ds["u"][month,z,y,x], self.ds["v"][month,z,y,x]
+                    if not u or not v:
+                        continue
+                    rad = np.arctan2(v, u) # -pi to pi
+                    cost = 1/np.linalg.norm([u, v])
+                    
+                    # switch case statement for all of the directions
+                    dir = None
+                    if rad <= np.pi/8 and rad > -np.pi/8: # right quadrant
+                        dir = 3
+                    elif rad <= 3*np.pi/8 and rad > np.pi/8: # top right quadrant
+                        dir = 2
+                    elif rad <= 5*np.pi/8 and rad > 3*np.pi/8: # top quadrant
+                        dir = 1
+                    elif rad <= 7*np.pi/8 and rad > 5*np.pi/8: # top left quadrant
+                        dir = 0
+                    elif rad <= -7*np.pi/8 or rad > 7*np.pi/8: # left quadrant
+                        dir = 7
+                    elif rad <= -5*np.pi/8 and rad > -7*np.pi/8: # left quadrant
+                        dir = 6
+                    elif rad <= -3*np.pi/8 and rad > -5*np.pi/8: # left quadrant
+                        dir = 5
+                    elif rad <= -1*np.pi/8 and rad > -3*np.pi/8: # left quadrant
+                        dir = 4
+                    else:
+                        return ValueError
+                    
+                    if cost < graph[y, x, dir]:
+                        graph[y, x, dir] = cost
+            if y % 10 == 0:
+                print(y, "iterations finished in", perf_counter() - start_time, "ms")
+                start_time = perf_counter()
+        return graph
 
 
 if __name__ == "__main__":
@@ -213,4 +255,13 @@ if __name__ == "__main__":
     # print(soda.query([-0.25, -69.75, 5.03355]))
     # print(soda.query([0, -69.75, 5.03355]))
     # print(soda.query([0, 0, 0.8726646259971648]))
+    test = np.load("graph.npy", allow_pickle=True)
+    print(test.shape)
+    print(test)
+    graph = soda.make_graph()
+    np.save("graph", graph)
+    print(graph)
+    print(graph.shape)
+    
+
     soda.ds.close()
