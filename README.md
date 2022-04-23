@@ -11,9 +11,9 @@ e.g. to send data, for recovery, or to investigate a site of interest.
 
 Traditional gliders utilize hydrodynamic forces to efficiently travel long distances via actively-
 controlled buoyancy. However, this requires wings and complicated control algorithms, and doesn't
-scale down well to ultra-small, ultra-cheap probes \[CITATION NEEDED\]. Previous works have explored
+scale down well to ultra-small, ultra-cheap probes. Previous works have explored
 purely drifting navigation on the surface of water, as well as navigation with a maximum speed in any
-direction \[Citations from LIT REVIEW\]. However, a buoyancy-controlled drifting probe which can only
+direction. However, a buoyancy-controlled drifting probe which can only
 travel up and down is much easier to construct than one which can travel in any direction, but
 nevertheless much more capable than a purely passive probe. This project aims to explore the abilities and
 limitations of specifically these types of limited-actuation probes.
@@ -27,7 +27,9 @@ Download the monthly regularized ocean dataset here from [here](https://www2.atm
 
 ## Usage
 
-It's easiest to test the code's functions within its specific files. Below are some visualization functions.
+It's easiest to test the code's functions within its specific files. Below are examples of using the visualization functions.
+
+If you wish to do more complex operations, the code is filled with docstrings and comments to help you along.
 
 ### SODA Dataloader (code\dataset_processing\soda_dataloader.py)
 
