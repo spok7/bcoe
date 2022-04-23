@@ -133,38 +133,39 @@ if __name__ == "__main__":
     miami_idx = soda.return_bounded_area(miami)[::2]
     # soda.draw_map(data=[([miami[0], st_johns[0]], [miami[2], st_johns[2]], 'r', 10)])
     print(miami_idx, st_johns_idx)
-    # D = Dijkstra(graph, miami_idx, st_johns_idx)
-    # nodes = D.run()
-    # if D.goal in nodes:
-    #     print("Success!")
-    #     path_x, path_y = D.get_paths(nodes)
-    #     reached_x, reached_y, reached_cost = [], [], []
-    #     for (x, y), n in nodes.items():
-    #         reached_x.append(x)
-    #         reached_y.append(y)
-    #         reached_cost.append(n.cost)
-    #     sgx, sgy = soda.convert_to_lon_lat([D.start[0], D.goal[0]], [D.start[1], D.goal[1]])
-    #     px, py = soda.convert_to_lon_lat(path_x, path_y)
-    #     rx, ry = soda.convert_to_lon_lat(reached_x, reached_y)
+    D = Dijkstra(graph, miami_idx, st_johns_idx)
+    nodes = D.run()
+    if D.goal in nodes:
+        print("Success!")
+        print("Cost:", nodes[D.goal].cost)
+        path_x, path_y = D.get_paths(nodes)
+        reached_x, reached_y, reached_cost = [], [], []
+        for (x, y), n in nodes.items():
+            reached_x.append(x)
+            reached_y.append(y)
+            reached_cost.append(n.cost)
+        sgx, sgy = soda.convert_to_lon_lat([D.start[0], D.goal[0]], [D.start[1], D.goal[1]])
+        px, py = soda.convert_to_lon_lat(path_x, path_y)
+        rx, ry = soda.convert_to_lon_lat(reached_x, reached_y)
         
-    #     soda.draw_map(data=[(rx, ry, reached_cost, 20),
-    #                         (px, py, 'purple', 30),
-    #                         (sgx, sgy, 'red', 50)], currents=True)
-    # else:
-    #     print("Failure")
-    #     print(nodes.keys())
+        soda.draw_map(data=[(rx, ry, reached_cost, 20),
+                            (px, py, 'purple', 30),
+                            (sgx, sgy, 'red', 50)], currents=True)
+    else:
+        print("Failure")
+        print(nodes.keys())
     
         
-    D = Dijkstra(graph, miami_idx, None)
-    nodes = D.run()
-    reached_x, reached_y, reached_cost = [], [], []
-    for (x, y), n in nodes.items():
-        reached_x.append(x)
-        reached_y.append(y)
-        reached_cost.append(n.cost)
-    rx, ry = soda.convert_to_lon_lat(reached_x, reached_y)
-    sx, sy = soda.convert_to_lon_lat([D.start[0]], [D.start[1]])
-    soda.draw_map(data=[(sx, sy, "red", 50),(rx, ry, "purple", 30)], currents=True)
+    # D = Dijkstra(graph, miami_idx, None)
+    # nodes = D.run()
+    # reached_x, reached_y, reached_cost = [], [], []
+    # for (x, y), n in nodes.items():
+    #     reached_x.append(x)
+    #     reached_y.append(y)
+    #     reached_cost.append(n.cost)
+    # rx, ry = soda.convert_to_lon_lat(reached_x, reached_y)
+    # sx, sy = soda.convert_to_lon_lat([D.start[0]], [D.start[1]])
+    # soda.draw_map(data=[(sx, sy, "red", 50),(rx, ry, "purple", 30)], currents=True)
         
         
     
