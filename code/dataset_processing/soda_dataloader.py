@@ -91,26 +91,21 @@ class SODA(Dataloader):
         dz = 0
         return dx, dy, dz
 
-    def draw_map(self, data=None, currents=True):
+    def draw_map(self, data=None, currents=True, resolution='c'):
         """Plots currents on a world map and can add waypoints. Saves the result.
 
         Args:
             data (list, optional): A list of tuples of longitudes, latitudes, colours, and sizes. Defaults to None.
             size (int, optional): The waypoint indicator size. Defaults to 1.
             currents (bool, optional): Flag enabling current plotting.
+            resolution (char, optional): Resolution at which to plot at. Defaults to 'c' which is crude. Change to 'i' for better quality.
         """
 
         plt.figure(figsize=(10,10))
-        m = Basemap(lat_ts=10,resolution='c') # change to i
-        # mercator stuff below if we end up needing it
-        # bbox = [-75, 89.75, -180, 180]
-        # m = Basemap(projection='merc',llcrnrlat=bbox[0],urcrnrlat=bbox[1],\
-        #             llcrnrlon=bbox[2],urcrnrlon=bbox[3],lat_ts=10,resolution='c') # change to i
+        m = Basemap(lat_ts=10,resolution=resolution)
         
         m.drawcoastlines()
         m.fillcontinents(color='coral',lake_color='aqua')
-        # m.drawparallels(np.arange(bbox[0],bbox[1],(bbox[1]-bbox[0])/5),labels=[1,0,0,0])
-        # m.drawmeridians(np.arange(bbox[2],bbox[3],(bbox[3]-bbox[2])/5),labels=[0,0,0,1],rotation=45)
         m.drawparallels(np.arange(-90.,91.,30.),labels=[1,0,0,0])
         m.drawmeridians(np.arange(-180.,181.,60.),labels=[0,0,0,1],rotation=45)
         m.drawmapboundary(fill_color='aqua')
@@ -119,8 +114,7 @@ class SODA(Dataloader):
             x, y = np.meshgrid(self.x_range, self.y_range)
             m.quiver(x, y, self.ds["u"][0, 0], self.ds["v"][0, 0], latlon=True, zorder=9)
         
-        for lons, lats, col, size in data:
-            # print(len(lons), len(lats), col, size)
+        for lons, lats, col, size in data:\
             m.scatter(lons, lats, marker='D', c=col, latlon=True, zorder=10, s=size)
         
         plt.title("Current Map")
@@ -151,7 +145,6 @@ class SODA(Dataloader):
             bbox (list, optional): A bounding box [x1,x2,y1,y2] to which the plot is constrained. Defaults to [-88, -7, 23, 64] (gulf stream).
         """
         
-        # extent = [75, 100, 5, 25]
         x1, x2, y1, y2 = self.return_bounded_area(bbox)
 
         # TODO: fix bug when x values range from negative to positive
@@ -160,18 +153,13 @@ class SODA(Dataloader):
         w = np.zeros(u.shape)
         x,y,z = np.meshgrid(self.y_range[y1:y2],self.z_range,self.x_range[x1:x2])
 
-        #Create a 3d normal figure
         fig = plt.figure(figsize=(16,14))
         ax = fig.add_subplot(projection='3d')
 
-        #Draw the earth map using Basemap
-        # Define lower left, upper right longitude and latitude respectively
-        # Create a basemap instance that draws the Earth layer
         bm = Basemap(llcrnrlon=bbox[0], llcrnrlat=bbox[2],
                     urcrnrlon=bbox[1], urcrnrlat=bbox[3],
                     projection='cyl', resolution='c', fix_aspect=False, ax=ax)
 
-        # Add Basemap to the figure
         ax.add_collection3d(bm.drawcoastlines(linewidth=0.25))
         ax.add_collection3d(bm.drawcountries(linewidth=0.35))
         ax.view_init(azim=300, elev=50)
@@ -179,7 +167,7 @@ class SODA(Dataloader):
         ax.set_ylabel('Latitude (°N)', labelpad=20)
         ax.set_zlabel('Depth (m)', labelpad=20)
 
-        # Add meridian and parallel gridlines
+        # add meridian and parallel gridlines
         lon_step = 5
         lat_step = 5
         meridians = np.arange(bbox[0], bbox[1] + lon_step, lon_step)
@@ -199,9 +187,27 @@ class SODA(Dataloader):
         plt.savefig('3d_current_map.png')
         
     def convert_to_lon_lat(self, x, y):
+        """Converts a dataset x, y index to a longitude and latitude value.
+
+        Args:
+            x (int): Index to convert to longitude.
+            y (int): Index to convert to latitude.
+
+        Returns:
+            tuple: Longitude, Latitude
+        """
         return [self.x_range[i] for i in x], [self.y_range[j] for j in y]
         
     def make_graph(self, month=0):
+        """Creates a directed graph for the dataset as a (330,720,8) array.
+        Takes 2.5h to run.
+
+        Args:
+            month (int, optional): Selects the month for which to use. Defaults to 0 (January).
+
+        Returns:
+            np.array: A (330,720,8) array of values corresponding to the latitudes, longitudes, and edge weights.
+        """
         start_time = perf_counter() # time in ms 1000/s
         graph = np.ones((330,720,8)) * np.inf
         for y in range(330):
@@ -210,33 +216,36 @@ class SODA(Dataloader):
                     u, v = self.ds["u"][month,z,y,x], self.ds["v"][month,z,y,x]
                     if not u or not v:
                         continue
-                    rad = np.arctan2(v, u) # -pi to pi
+                    # set the cost to the inverse of the speed of the current
                     cost = 1/np.linalg.norm([u, v])
                     
-                    # switch case statement for all of the directions
+                    # discretize the angle to 8 directions
+                    rad = np.arctan2(v, u) # -pi to pi
                     dir = None
-                    if rad <= np.pi/8 and rad > -np.pi/8: # right quadrant
+                    if rad <= np.pi/8 and rad > -np.pi/8: # right octant
                         dir = 3
-                    elif rad <= 3*np.pi/8 and rad > np.pi/8: # top right quadrant
+                    elif rad <= 3*np.pi/8 and rad > np.pi/8: # top right octant
                         dir = 2
-                    elif rad <= 5*np.pi/8 and rad > 3*np.pi/8: # top quadrant
+                    elif rad <= 5*np.pi/8 and rad > 3*np.pi/8: # top octant
                         dir = 1
-                    elif rad <= 7*np.pi/8 and rad > 5*np.pi/8: # top left quadrant
+                    elif rad <= 7*np.pi/8 and rad > 5*np.pi/8: # top left octant
                         dir = 0
-                    elif rad <= -7*np.pi/8 or rad > 7*np.pi/8: # left quadrant
+                    elif rad <= -7*np.pi/8 or rad > 7*np.pi/8: # left octant
                         dir = 7
-                    elif rad <= -5*np.pi/8 and rad > -7*np.pi/8: # left quadrant
+                    elif rad <= -5*np.pi/8 and rad > -7*np.pi/8: # bottom left octant
                         dir = 6
-                    elif rad <= -3*np.pi/8 and rad > -5*np.pi/8: # left quadrant
+                    elif rad <= -3*np.pi/8 and rad > -5*np.pi/8: # bottom octant
                         dir = 5
-                    elif rad <= -1*np.pi/8 and rad > -3*np.pi/8: # left quadrant
+                    elif rad <= -1*np.pi/8 and rad > -3*np.pi/8: # bottom right octant
                         dir = 4
                     else:
                         return ValueError
                     
+                    #update accordingly
                     if cost < graph[y, x, dir]:
                         graph[y, x, dir] = cost
-            if y % 10 == 0:
+
+            if y % 10 == 0: # for timekeeping
                 print(y, "iterations finished in", perf_counter() - start_time, "ms")
                 start_time = perf_counter()
         return graph
@@ -257,9 +266,9 @@ if __name__ == "__main__":
     # print(soda.query([-0.25, -69.75, 5.03355]))
     # print(soda.query([0, -69.75, 5.03355]))
     # print(soda.query([0, 0, 0.8726646259971648]))
-    test = np.load("graph.npy", allow_pickle=True)
-    print(test.shape)
-    print(test)
+    # test = np.load("graph.npy", allow_pickle=True)
+    # print(test.shape)
+    # print(test)
     graph = soda.make_graph()
     np.save("graph", graph)
     print(graph)

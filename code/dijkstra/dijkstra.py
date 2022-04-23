@@ -48,6 +48,11 @@ class Dijkstra:
         return [(tuple(l), Node(idx, c)) for l, c in zip(leaves, costs)]
         
     def run(self):
+        """Run Dijkstra's Algorithm on the given graph.
+
+        Returns:
+            list: A list of nodes traversed by the algorithm.
+        """
         visited = {self.start:Node()}
         leaves = {}
         leaves.update(self.find_leaves(self.start))
@@ -79,6 +84,14 @@ class Dijkstra:
         return visited
     
     def get_paths(self, nodes):
+        """Generate a path from the goal to the start given a list of traversed nodes.
+
+        Args:
+            nodes (list(Node)): A list of nodes from self.run()
+
+        Returns:
+            list: A path from the start node to the goal node.
+        """
         path_x, path_y = [], []
         ci = self.goal
         cn = nodes[ci]
@@ -92,6 +105,15 @@ class Dijkstra:
         return path_x[::-1], path_y[::-1]
 
 def fake_data(x, y):
+    """Generate random values of a given size in a similar format as SODA().make_graph().
+
+    Args:
+        x (int): Length of graph.
+        y (int): Width of graph.
+
+    Returns:
+        np.array: (y,x,8) list corresponding to a simulated graph.
+    """
     graph = np.ones((y, x, 8)) * np.inf
     
     for i in range(x):
@@ -106,9 +128,44 @@ def fake_data(x, y):
                 graph[j, i, index] = random.randint(1, 9)
     
     return graph
+
+def graph_dijkstra(soda, graph, start, goal=None):
+    """Run Dijkstra's algorithm and plot the results.
+    Prints a path in purple when one exists between the start and goal nodes.
+    Plots the explored nodes in purple otherwise.
+
+    Args:
+        soda (SODA): SODA Object.
+        graph (np.array): Graph generated with SODA().make_graph() or fake_data(). Must be of size (330, 720, 8).
+        start (list): (longitude, latitude) of start node.
+        goal (_type_, optional): (longitude, latitude) of goal node. Defaults to None.
+    """
+    start_idx = soda.return_bounded_area(np.repeat(start, 2))[::2]
+    goal_idx = soda.return_bounded_area(np.repeat(goal, 2))[::2] if goal else None
+    D = Dijkstra(graph, start_idx, goal_idx)
+    nodes = D.run()
+    
+    reached_x, reached_y, reached_cost = [], [], []
+    for (x, y), n in nodes.items():
+        reached_x.append(x)
+        reached_y.append(y)
+        reached_cost.append(n.cost)
+    rx, ry = soda.convert_to_lon_lat(reached_x, reached_y)
+    sx, sy = soda.convert_to_lon_lat([D.start[0], D.goal[0]], [D.start[1], D.goal[1]])
+
+    if D.goal in nodes:
+        print("Path found with cost:", nodes[D.goal].cost)
+        path_x, path_y = D.get_paths(nodes)
+        px, py = soda.convert_to_lon_lat(path_x, path_y)
+        soda.draw_map(data=[(rx, ry, reached_cost, 20),
+                            (px, py, 'purple', 30),
+                            (sx, sy, 'red', 50)], currents=True)
+    else:
+        print("Path not found.")
+        soda.draw_map(data=[(sx, sy, "red", 50),(rx, ry, "purple", 30)], currents=True)
         
 if __name__ == "__main__":
-    random.seed(42)
+    # random.seed(42)
     # graph = fake_data(5, 4)
     # print(graph)
     # print(graph.shape, graph[1,0])
@@ -127,45 +184,10 @@ if __name__ == "__main__":
     soda = SODA()
     graph = np.load("D:\\sync\\documents\\academics\\c. grad school\\s2-AER1516-planning-for-robotics\\project\\graph.npy", allow_pickle=True)
     
-    st_johns = [-48, -48, 44, 44]
-    miami = [-80, -80, 25, 25]
-    st_johns_idx = soda.return_bounded_area(st_johns)[::2]
-    miami_idx = soda.return_bounded_area(miami)[::2]
-    # soda.draw_map(data=[([miami[0], st_johns[0]], [miami[2], st_johns[2]], 'r', 10)])
-    print(miami_idx, st_johns_idx)
-    D = Dijkstra(graph, miami_idx, st_johns_idx)
-    nodes = D.run()
-    if D.goal in nodes:
-        print("Success!")
-        print("Cost:", nodes[D.goal].cost)
-        path_x, path_y = D.get_paths(nodes)
-        reached_x, reached_y, reached_cost = [], [], []
-        for (x, y), n in nodes.items():
-            reached_x.append(x)
-            reached_y.append(y)
-            reached_cost.append(n.cost)
-        sgx, sgy = soda.convert_to_lon_lat([D.start[0], D.goal[0]], [D.start[1], D.goal[1]])
-        px, py = soda.convert_to_lon_lat(path_x, path_y)
-        rx, ry = soda.convert_to_lon_lat(reached_x, reached_y)
-        
-        soda.draw_map(data=[(rx, ry, reached_cost, 20),
-                            (px, py, 'purple', 30),
-                            (sgx, sgy, 'red', 50)], currents=True)
-    else:
-        print("Failure")
-        print(nodes.keys())
+    st_johns = [-48, 44]
+    miami = [-80, 25]
     
-        
-    # D = Dijkstra(graph, miami_idx, None)
-    # nodes = D.run()
-    # reached_x, reached_y, reached_cost = [], [], []
-    # for (x, y), n in nodes.items():
-    #     reached_x.append(x)
-    #     reached_y.append(y)
-    #     reached_cost.append(n.cost)
-    # rx, ry = soda.convert_to_lon_lat(reached_x, reached_y)
-    # sx, sy = soda.convert_to_lon_lat([D.start[0]], [D.start[1]])
-    # soda.draw_map(data=[(sx, sy, "red", 50),(rx, ry, "purple", 30)], currents=True)
+    graph_dijkstra(soda, graph, miami, st_johns)
         
         
     
